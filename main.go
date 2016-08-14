@@ -14,13 +14,21 @@ var (
 	repo               = "syncthing/syncthing"
 	maxUnclassifiedAge = 30 * 24 * time.Hour
 	minIdle            = 7 * 24 * time.Hour
+	runTriage          = true
+	runOldBugs         = false
 )
 
 func main() {
 	flag.StringVar(&repo, "repo", repo, "Repository")
+	flag.BoolVar(&runTriage, "triage", runTriage, "Run triage query")
+	flag.BoolVar(&runOldBugs, "old-bugs", runOldBugs, "Run old bugs query")
 	flag.Parse()
-	triage()
-	oldBugs()
+	if runTriage {
+		triage()
+	}
+	if runOldBugs {
+		oldBugs()
+	}
 }
 
 func triage() {
@@ -32,14 +40,17 @@ func triage() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	n := 0
 	for _, i := range issues {
 		if !shouldProcess(i) {
 			continue
 		}
 		if time.Since(i.Created) > maxUnclassifiedAge {
 			issue(i)
+			n++
 		}
 	}
+	fmt.Printf("- %d issues\n\n", n)
 }
 
 func oldBugs() {
@@ -51,14 +62,17 @@ func oldBugs() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	n := 0
 	for _, i := range issues {
 		if !shouldProcess(i) {
 			continue
 		}
 		if time.Since(i.Created) > 365*24*time.Hour {
 			issue(i)
+			n++
 		}
 	}
+	fmt.Printf("- %d issues\n\n", n)
 }
 
 func issue(i github.Issue) {
